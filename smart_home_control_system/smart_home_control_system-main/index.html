@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Home 3D Simulation</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background: #000;
+        }
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            color: white;
+            z-index: 1000;
+        }
+        .control-group {
+            margin-bottom: 15px;
+        }
+        .control-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        button {
+            margin-right: 10px;
+            padding: 8px 15px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        button.active {
+            background: #4CAF50;
+            border-color: #4CAF50;
+        }
+        input[type="range"] {
+            width: 120px;
+            margin-left: 10px;
+        }
+        #info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: white;
+            font-size: 14px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <h3>Smart Home Controls</h3>
+        
+        <div class="control-group">
+            <span class="control-label">Room Lights:</span>
+            <button id="lights-on">ON</button>
+            <button id="lights-off">OFF</button>
+            <input type="range" id="light-intensity" min="0" max="100" value="80">
+        </div>
+        
+        <div class="control-group">
+            <span class="control-label">Ceiling Fan:</span>
+            <button id="fan-off">OFF</button>
+            <button id="fan-low">LOW</button>
+            <button id="fan-high">HIGH</button>
+        </div>
+        
+        <div class="control-group">
+            <span class="control-label">TV:</span>
+            <button id="tv-on">ON</button>
+            <button id="tv-off">OFF</button>
+        </div>
+        
+        <div class="control-group">
+            <span class="control-label">AC Temperature:</span>
+            <input type="range" id="ac-temp" min="16" max="30" value="22">
+            <span id="temp-display">22°C</span>
+        </div>
+    </div>
+
+    <div id="info">
+        Use mouse to rotate view | Scroll to zoom
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x222222);
+        
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 5, 10);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(renderer.domElement);
+
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.3);
+        scene.add(ambientLight);
+
+        const roomLight = new THREE.PointLight(0xffffff, 1, 20);
+        roomLight.position.set(0, 8, 0);
+        roomLight.castShadow = true;
+        scene.add(roomLight);
+
+        const floor = new THREE.Mesh(
+            new THREE.BoxGeometry(20, 0.1, 15),
+            new THREE.MeshLambertMaterial({ color: 0x8B7355 })
+        );
+        floor.position.y = -0.05;
+        floor.receiveShadow = true;
+        scene.add(floor);
+
+        const wallMaterial = new THREE.MeshLambertMaterial({ color: 0xF0F0F0 });
+        
+        const backWall = new THREE.Mesh(
+            new THREE.BoxGeometry(20, 10, 0.1),
+            wallMaterial
+        );
+        backWall.position.set(0, 5, -7.5);
+        scene.add(backWall);
+
+        const sofa = new THREE.Group();
+        const sofaBase = new THREE.Mesh(
+            new THREE.BoxGeometry(4, 0.8, 2),
+            new THREE.MeshLambertMaterial({ color: 0x4A4A4A })
+        );
+        sofaBase.position.y = 0.4;
+        sofaBase.castShadow = true;
+        sofa.add(sofaBase);
+
+        const sofaBack = new THREE.Mesh(
+            new THREE.BoxGeometry(4, 1.5, 0.5),
+            new THREE.MeshLambertMaterial({ color: 0x4A4A4A })
+        );
+        sofaBack.position.set(0, 1.15, -0.75);
+        sofaBack.castShadow = true;
+        sofa.add(sofaBack);
+
+        sofa.position.set(-5, 0, 3);
+        scene.add(sofa);
+
+        const tvGroup = new THREE.Group();
+        
+        const tvStand = new THREE.Mesh(
+            new THREE.BoxGeometry(3, 0.5, 1.5),
+            new THREE.MeshLambertMaterial({ color: 0x333333 })
+        );
+        tvStand.position.y = 0.25;
+        tvStand.castShadow = true;
+        tvGroup.add(tvStand);
+
+        const tvScreen = new THREE.Mesh(
+            new THREE.BoxGeometry(2.5, 1.5, 0.1),
+            new THREE.MeshBasicMaterial({ color: 0x000000 })
+        );
+        tvScreen.position.set(0, 1.25, 0);
+        tvGroup.add(tvScreen);
+
+        tvGroup.position.set(0, 0, -6);
+        scene.add(tvGroup);
+
+        const fanGroup = new THREE.Group();
+        
+        const fanMotor = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.3, 0.3, 0.2),
+            new THREE.MeshLambertMaterial({ color: 0xCCCCCC })
+        );
+        fanGroup.add(fanMotor);
+
+        const fanBlades = [];
+        for (let i = 0; i < 4; i++) {
+            const blade = new THREE.Mesh(
+                new THREE.BoxGeometry(2, 0.05, 0.3),
+                new THREE.MeshLambertMaterial({ color: 0xDDDDDD })
+            );
+            blade.rotation.y = (i * Math.PI) / 2;
+            blade.castShadow = true;
+            fanBlades.push(blade);
+            fanGroup.add(blade);
+        }
+
+        fanGroup.position.set(2, 7, 0);
+        scene.add(fanGroup);
+
+        const acGroup = new THREE.Group();
+        
+        const acBody = new THREE.Mesh(
+            new THREE.BoxGeometry(2, 0.6, 0.4),
+            new THREE.MeshLambertMaterial({ color: 0xFFFFFF })
+        );
+        acBody.castShadow = true;
+        acGroup.add(acBody);
+
+        const acDisplay = new THREE.Mesh(
+            new THREE.BoxGeometry(0.3, 0.1, 0.05),
+            new THREE.MeshBasicMaterial({ color: 0x000080 })
+        );
+        acDisplay.position.set(-0.6, 0.1, 0.21);
+        acGroup.add(acDisplay);
+
+        for (let i = 0; i < 4; i++) {
+            const vent = new THREE.Mesh(
+                new THREE.BoxGeometry(1.8, 0.05, 0.05),
+                new THREE.MeshLambertMaterial({ color: 0x333333 })
+            );
+            vent.position.set(0, -0.1 + i * 0.05, 0.21);
+            acGroup.add(vent);
+        }
+
+        acGroup.position.set(5, 6, -7.4);
+        scene.add(acGroup);
+
+        let lightsOn = true;
+        let lightIntensity = 0.8;
+        let fanSpeed = 0; // 0 = off, 1 = low, 2 = high
+        let tvOn = false;
+        let temperature = 22;
+
+        function updateLights() {
+            const intensity = lightsOn ? lightIntensity : 0;
+            roomLight.intensity = intensity;
+            
+            const ambientIntensity = lightsOn ? 0.3 : 0.1;
+            ambientLight.intensity = ambientIntensity;
+        }
+
+        function updateFan() {
+        }
+
+        function updateTV() {
+            if (tvOn) {
+                tvScreen.material.color.setHex(0x4169E1);
+            } else {
+                tvScreen.material.color.setHex(0x000000);
+            }
+        }
+
+        function updateButtonStates() {
+            document.getElementById('lights-on').classList.toggle('active', lightsOn);
+            document.getElementById('lights-off').classList.toggle('active', !lightsOn);
+            
+            document.getElementById('fan-off').classList.toggle('active', fanSpeed === 0);
+            document.getElementById('fan-low').classList.toggle('active', fanSpeed === 1);
+            document.getElementById('fan-high').classList.toggle('active', fanSpeed === 2);
+            
+            document.getElementById('tv-on').classList.toggle('active', tvOn);
+            document.getElementById('tv-off').classList.toggle('active', !tvOn);
+        }
+
+        document.getElementById('lights-on').addEventListener('click', () => {
+            lightsOn = true;
+            updateLights();
+            updateButtonStates();
+        });
+
+        document.getElementById('lights-off').addEventListener('click', () => {
+            lightsOn = false;
+            updateLights();
+            updateButtonStates();
+        });
+
+        document.getElementById('light-intensity').addEventListener('input', (e) => {
+            lightIntensity = e.target.value / 100;
+            if (lightsOn) updateLights();
+        });
+
+        document.getElementById('fan-off').addEventListener('click', () => {
+            fanSpeed = 0;
+            updateButtonStates();
+        });
+
+        document.getElementById('fan-low').addEventListener('click', () => {
+            fanSpeed = 1;
+            updateButtonStates();
+        });
+
+        document.getElementById('fan-high').addEventListener('click', () => {
+            fanSpeed = 2;
+            updateButtonStates();
+        });
+
+        document.getElementById('tv-on').addEventListener('click', () => {
+            tvOn = true;
+            updateTV();
+            updateButtonStates();
+        });
+
+        document.getElementById('tv-off').addEventListener('click', () => {
+            tvOn = false;
+            updateTV();
+            updateButtonStates();
+        });
+
+        document.getElementById('ac-temp').addEventListener('input', (e) => {
+            temperature = parseInt(e.target.value);
+            document.getElementById('temp-display').textContent = temperature + '°C';
+            
+            const tempRatio = (temperature - 16) / (30 - 16);
+            const hue = (1 - tempRatio) * 0.6; // Blue (cold) to red (hot)
+            roomLight.color.setHSL(hue, 0.3, 1);
+
+            if (temperature < 20) {
+                acDisplay.material.color.setHex(0x0000FF); // Blue for cold
+            } else if (temperature > 25) {
+                acDisplay.material.color.setHex(0xFF0000); // Red for hot
+            } else {
+                acDisplay.material.color.setHex(0x00FF00); // Green for comfortable
+            }
+        });
+
+        let isMouseDown = false;
+        let mouseX = 0, mouseY = 0;
+
+        document.addEventListener('mousedown', (e) => {
+            isMouseDown = true;
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        document.addEventListener('mouseup', () => {
+            isMouseDown = false;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isMouseDown) {
+                const deltaX = e.clientX - mouseX;
+                const deltaY = e.clientY - mouseY;
+                
+                camera.position.x += deltaX * 0.01;
+                camera.position.y -= deltaY * 0.01;
+                
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+                
+                camera.lookAt(0, 0, 0);
+            }
+        });
+
+        document.addEventListener('wheel', (e) => {
+            const zoomSpeed = 0.5;
+            camera.position.z += e.deltaY * zoomSpeed * 0.01;
+            camera.position.z = Math.max(5, Math.min(20, camera.position.z));
+        });
+        let animationTime = 0;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            animationTime += 0.01;
+            const radius = 10;
+            camera.position.x = Math.sin(animationTime * 0.1) * radius;
+            camera.position.z = Math.cos(animationTime * 0.1) * radius;
+            camera.lookAt(0, 0, 0);
+
+            if (fanSpeed > 0) {
+                const rotationSpeed = fanSpeed * 0.1;
+                fanBlades.forEach(blade => {
+                    blade.rotation.z += rotationSpeed;
+                });
+            }
+
+            if (tvOn) {
+                const r = Math.sin(animationTime) * 0.3 + 0.5;
+                const g = Math.sin(animationTime + 2) * 0.3 + 0.5;
+                const b = Math.sin(animationTime + 4) * 0.3 + 0.5;
+                tvScreen.material.color.setRGB(r, g, b);
+            }
+
+            renderer.render(scene, camera);
+        }
+        updateLights();
+        updateTV();
+        updateButtonStates();
+        
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>
